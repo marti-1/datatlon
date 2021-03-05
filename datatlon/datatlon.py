@@ -3,39 +3,7 @@ import numpy as np
 from functools import reduce
 import pandas as pd
 from tabulate import tabulate
-
-def cond(xs, fn):
-    if type(xs) == list:
-        return np.array([True if fn(x) else False for i, x in enumerate(xs)])
-    else:
-        return fn(xs)
-
-
-def condh(xs, cmp, value):
-    if cmp == '==':
-        return cond(xs, lambda x: x == value)
-    elif cmp == '>':
-        return cond(xs, lambda x: x > value)
-    elif cmp == '<':
-        return cond(xs, lambda x: x < value)
-    elif cmp == '>=':
-        return cond(xs, lambda x: x >= value)
-    elif cmp == '<=':
-        return cond(xs, lambda x: x <= value)
-    else:
-        raise Exception(f'Unknown compare operation "{cmp}"')
-
-
-def land(a,b):
-    return np.logical_and(a,b)
-
-
-def lor(a,b):
-    return np.logical_or(a,b)
-
-
-def lnot(a):
-    return np.logical_not(a)
+import arrow
 
 
 def _clone(t):
@@ -49,7 +17,7 @@ def nrows(t):
     return len(t[list(t.keys())[0]])
 
 
-def get_row(t, idx):
+def row(t, idx):
     y = {}
     for c in t.keys():
         y[c] = t[c][idx]
@@ -73,20 +41,17 @@ def rows(t, idx):
             y[f] = t[f][idx]
     return y
     
+    
+def range_mask(t, start, end = None):
+    if end is None:
+        end = nrows(t)
+        
+    mask = np.zeros(nrows(t), dtype=bool)
+    mask[start:end] = True
+    return mask
 
-def slice_rows(t, _from, _to):
-    fields = t.keys()
-    s = {}
-    for f in fields:
-        s[f] = t[f][_from:_to]
-    return s
 
-
-def group_by(t, fields):
-    """
-    Expects t to be already sorted by fields.
-    fields -- (f1, f2, ...)
-    """
+def _group_by_to_dict(t, fields):
     if type(fields) == str:
         fields = [fields]
     
@@ -100,32 +65,84 @@ def group_by(t, fields):
     
     groups = {}
     for i in range(nrows(t)):
-        row = get_row(t,i)
+        row = row(t,i)
         key = make_key(row, fields)
         if key not in groups:
             groups[key] = []
-        groups[key].append(row)
+        groups[key].append(row)   
+    return groups
+
+def group_by(t, fields):
+    """
+    Expects t to be already sorted by fields.
+    fields -- (f1, f2, ...)
+    """
+    groups = _group_by_to_dict(t, fields)
     return [from_dicts(g) for g in groups.values()]
 
 
-def apply(gs, fn):
+def _prefix(t, p):
+    fields = list(t.keys())
+    for f in fields:
+        t[f'{p}{f}'] = t[f]
+        del t[f]
+    return t
+
+def _combine(x, y, es):
+    if type(es) is str:
+        es = [es]
+    y = dict(y)
+    for e in es:
+        del y[e]
+    return {**x, **y}
+
+def _merge(g1, g2, t2_on):
+    out = []
+    for r1 in g1:
+        for r2 in g2:
+            out.append(_combine(r1, r2, t2_on))
+    return out
+
+def join(t1, t2, t1_on, t2_on, t1_prefix=None, t2_prefix=None):
+    t1 = _clone(t1)
+    t2 = _clone(t2)
+    if t1_prefix is not None:
+        t1 = _prefix(t1, t1_prefix)
+    if t2_prefix is not None:
+        t2 = _prefix(t2, t2_prefix)
+        t2_on = [f'{t2_prefix}{x}' for x in t2_on]
+    gs1 = _group_by_to_dict(t1, t1_on)
+    gs2 = _group_by_to_dict(t2, t2_on)
+    groups = []
+    for k, g1 in gs1.items():
+        if k not in gs2:
+            continue
+        g2 = gs2[k]
+        groups.append(_merge(g1, g2, t2_on))
+    return ungroup([from_dicts(g) for g in groups])
+
+
+def af(fn, attr):
+    return lambda x: fn(x[attr])
+
+def cf(fn):
+    """
+    fn(x: Object) -> Object
+    return fn(xs: np.ndarray) -> map(fn, np.ndarray)
+    """
+    return lambda x: np.array(list(map(fn, x)))
+
+def apply(gs, **kwargs):
     """
     Immutable.
     list of groups made from a table, e.g. with `group_by`
-    
-    ```
-    apply(gs, {'ret': lambda x: pctReturn(x['price'])})
-    ```
     """
     gs = list(map(_clone, gs))
-    if type(fn) == dict:
-        for g in gs:
-            for f in fn.keys():
-                g[f] = fn[f](g)
-                assert(len(g[f]) == nrows(g))
-        return gs
-    else:
-        return list(map(fn, gs))
+    for g in gs:
+        for f in kwargs.keys():
+            g[f] = kwargs[f](g)
+            assert(len(g[f]) == nrows(g))
+    return gs
     
     
 def fields(t, start, end=None):
@@ -138,7 +155,7 @@ def fields(t, start, end=None):
         if end is None:
             end = len(f)
         else:
-            end = f.index(end)
+            end = f.index(end)+1
     else:
         raise Exception('Unknown range type.')
             
@@ -204,12 +221,10 @@ def arrange(t, fields, asc = None):
     if asc is None:
         asc = [True] * len(fields)
 
-        
     if type(asc) == bool:
         asc = [asc]        
 
     assert(len(fields) == len(asc))
-    
 
     f = fields[0]
     idx = _sorted_index(t[f], asc[0])
@@ -275,7 +290,7 @@ def from_dicts(ds):
 
 def head(t, n = 5):
     n = min(nrows(t), n)
-    s = slice_rows(t, 0, n)
+    s = rows(t, range_mask(t, 0, n))
     to_str(s)
     
 def to_str(t):
@@ -290,5 +305,12 @@ def to_str(t):
     
 def tail(t, n = 5):
     start_idx = max(nrows(t) - n - 1, 0)
-    s = slice_rows(t, start_idx, nrows(t))
+    s = rows(t, range_mask(t, start_idx))
     to_str(s)
+    
+    
+def parse_dt(x, fmt = None):
+    if fmt is None:
+        return arrow.get(x).datetime
+    else:
+        return arrow.get(x, fmt).datetime
