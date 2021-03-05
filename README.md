@@ -2,8 +2,8 @@
 
 ## Philosophy
 
-* Less is exponentially more.
 * Immutable where matters.
+* Provide lego building blocks for table like data manipulation.
 
 ## API
 
@@ -58,6 +58,14 @@ df = select(df, fields(df, 0,10))
 df2 = rows(df, df['Age'] > 30)
 ```
 
+Present only the Shooting Accuracy from England, Italy and Russia
+```
+select(
+    rows(euro12, np.in1d(euro12['Team'], ['England', 'Italy', 'Russia'])),
+    ['Team','Shooting Accuracy']
+)
+```
+
 Helpers:
 ```
 df_slice = rows(df, range_mask(df, 100, 200))
@@ -68,7 +76,7 @@ df_slice = rows(df, range_mask(df, 100, 200))
 
 ### Aggregate
 
-#### `group_by(t: Table, fields: List[String]) -> Groups`
+#### `group_by(t: Table, fields: Union[String, List[String]]) -> Groups`
 
 #### `ungroup(gs: Groups) -> Table`
 
@@ -87,6 +95,15 @@ Helpers:
 * `sf(fn: VectorFn, attr: String) -> Object`, where `VectorFn = f(x: numpy.ndarray) -> Object`.
 * `first`
 * `last`
+
+#### `apply(gs: Groups, fn: Map[String -> fn]) -> Groups`
+
+Add additional column `ret` for every symbol group:
+
+```
+gs = group_by(t, 'symbol')
+t = apply(gs, ret = af(pct_change, 'price'))
+```
 
 ### Order
 
