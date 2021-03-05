@@ -40,7 +40,6 @@
 
 ### Select and Filter
 
-
 #### `select(t: Table, fields: List[String])`
 
 ```
@@ -110,9 +109,23 @@ Helpers:
 
 ### Order
 
-#### `arrange(t: Table, fields: List[String], asc: List[Bool] = None)`
+#### `arrange(t: Table, fields: List[String], asc: List[Bool] = None) -> Table`
 
 ```
 arrange(discipline, ['Red Cards', 'Yellow Cards'], [False, False])
 ```
 
+### Combine
+
+#### `join(t1 Table, t2: Table, t1_on: Union[String, List[String]], t2_on: Union[String, List[String]], t1_prefix=None, t2_prefix=None) -> Table`
+
+
+### Misc
+
+#### `rename(t: Table, from_names: List[String], to_names: List[String])`
+
+**Note**: mutable.
+
+```
+rename(t, ['CLVMEURSCAB1GQEA19','CP0000EZ19M086NEST'], ['GDP','CPI'])
+```
