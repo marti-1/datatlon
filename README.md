@@ -92,11 +92,11 @@ summarize(gs,
 ```
 
 Helpers:
-* `sf(fn: VectorFn, attr: String) -> Object`, where `VectorFn = f(x: numpy.ndarray) -> Object`.
+* `sf(fn: VectorFn, attr: String) -> Object`, where `VectorFn = f(x: numpy.ndarray) -> Object`
 * `first`
 * `last`
 
-#### `apply(gs: Groups, fn: Map[String -> fn]) -> Groups`
+#### `apply(gs: Groups, **kwargs) -> Groups`
 
 Add additional column `ret` for every symbol group:
 
@@ -104,6 +104,9 @@ Add additional column `ret` for every symbol group:
 gs = group_by(t, 'symbol')
 t = apply(gs, ret = af(pct_change, 'price'))
 ```
+
+Helpers:
+* `af(fn: VectorFn, attr: String) -> numpy.ndarray`, where `VectorFn = f(x: numpy.ndarray) -> numpy.ndarray`
 
 ### Order
 
