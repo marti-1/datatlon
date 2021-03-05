@@ -19,11 +19,11 @@
 
 #### `read_csv(fn: String) -> Table`
 
-### `from_df(df: pandas.DataFrame) -> Table`
+#### `from_df(df: pandas.DataFrame) -> Table`
 
-### `to_df(t: Table) -> pandas.DataFrame`
+#### `to_df(t: Table) -> pandas.DataFrame`
 
-### `from_dicts(ds: List[Map]) -> Table`
+#### `from_dicts(ds: List[Map]) -> Table`
 
 
 
@@ -38,7 +38,7 @@
 
 
 
-### Select
+### Select and Filter
 
 
 #### `select(t: Table, fields: List[String])`
@@ -72,11 +72,27 @@ df_slice = rows(df, range_mask(df, 100, 200))
 
 #### `ungroup(gs: Groups) -> Table`
 
-### `summarize(gs: Groups, **kwargs) -> Table`
+#### `summarize(gs: Groups, **kwargs) -> Table`
 
 ```
+gs = group_by(t, 'continent')
+summarize(gs, 
+  continent = sf(first, 'continent`),
+  avg_served = sf(np.mean, 'beer_servings'),
+  male_ratio = lambda g: np.sum(g['gender'] == 'M') / nrows(g)
+)
 ```
 
-```
+Helpers:
+* `sf(fn: VectorFn, attr: String) -> Object`, where `VectorFn = f(x: numpy.ndarray) -> Object`.
+* `first`
+* `last`
+
+### Order
+
+#### `arrange(t: Table, fields: List[String], asc: List[Bool] = None)`
 
 ```
+arrange(discipline, ['Red Cards', 'Yellow Cards'], [False, False])
+```
+
