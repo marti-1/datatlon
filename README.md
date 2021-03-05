@@ -120,7 +120,7 @@ arrange(discipline, ['Red Cards', 'Yellow Cards'], [False, False])
 #### `join(t1 Table, t2: Table, t1_on: Union[String, List[String]], t2_on: Union[String, List[String]], t1_prefix=None, t2_prefix=None) -> Table`
 
 
-### Misc
+### Mutate
 
 #### `rename(t: Table, from_names: List[String], to_names: List[String])`
 
@@ -128,4 +128,11 @@ arrange(discipline, ['Red Cards', 'Yellow Cards'], [False, False])
 
 ```
 rename(t, ['CLVMEURSCAB1GQEA19','CP0000EZ19M086NEST'], ['GDP','CPI'])
+```
+
+#### `cf(fn(x: Object) -> Object) -> fn(x: numpy.ndarray) -> numpy.ndarray`
+
+```
+capitalize = lambda x: x.capitalize()
+t['Mjob'] = cf(capitalize)(t['Mjob'])
 ```
