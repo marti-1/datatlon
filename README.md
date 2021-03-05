@@ -132,7 +132,13 @@ rename(t, ['CLVMEURSCAB1GQEA19','CP0000EZ19M086NEST'], ['GDP','CPI'])
 
 #### `cf(fn(x: Object) -> Object) -> fn(x: numpy.ndarray) -> numpy.ndarray`
 
+Capitalize every word in a column:
 ```
 capitalize = lambda x: x.capitalize()
 t['Mjob'] = cf(capitalize)(t['Mjob'])
+```
+
+Parse dates:
+```
+t['Date'] = cf(lambda x: parse_dt(x, 'YYYYMMDD'))(t['Date'])
 ```
